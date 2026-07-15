@@ -33,6 +33,7 @@ sample_1_paired.fq.gz sample_1_unpaired.fq.gz \
 sample_2_paired.fq.gz sample_2_unpaired.fq.gz \
 ILLUMINACLIP:adapter.fa:2:30:10 LEADING:3 TRAILING:3 \
 SLIDINGWINDOW:4:15 MINLEN:36
+###Use HEADCROP and CROP according to sample quality
 
 ### -----------------------------
 ### 5. Alignment using BWA
