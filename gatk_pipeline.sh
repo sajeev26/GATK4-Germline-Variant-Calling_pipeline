@@ -127,23 +127,31 @@ gatk HaplotypeCaller \
 -ERC GVCF
 
 ### -----------------------------
-### 13. Variant Filtering (Hard Filter)
+### 13. Converting GVCF mode to VCF file (optional)
+### -----------------------------
+gatk --java-options "-Xmx4g" GenotypeGVCFs \
+ -R $REFERENCE \
+ -V sample.g.vcf \
+ -O output.vcf.gz
+ 
+### -----------------------------
+### 14. Variant Filtering (Hard Filter)
 ### -----------------------------
 gatk VariantFiltration \
 -R $REFERENCE \
 -V raw_variants.vcf \
 --filter-name "LowQual" \
---filter-expression "QD < 2.0 || FS > 60.0 || MQ < 40.0" \
+--filter-expression "QD < 2.0 || FS > 60.0 || MQ < 40.0 || SOR > 4.0" \
 -O filtered_variants.vcf
 
 ### -----------------------------
-### 14. Extract SNPs and INDELs
+### 15. Extract SNPs and INDELs
 ### -----------------------------
 gatk SelectVariants \
 -R $REFERENCE \
 -V filtered_variants.vcf \
 --select-type SNP \
--O snps.vcf
+-O SNPs.vcf
 
 gatk SelectVariants \
 -R $REFERENCE \
@@ -151,18 +159,22 @@ gatk SelectVariants \
 --select-type INDEL \
 -O indels.vcf
 
-### -----------------------------
-### 15. Variant Annotation (Funcotator)
-### -----------------------------
 # NOTE: User must provide funcotator data sources.
 echo "Annotation step requires Funcotator data sources."
 
-# Example:
-# gatk Funcotator \
-# -R $REFERENCE \
-# -V filtered_variants.vcf \
-# --output-file annotated_variants.vcf \
-# --data-sources-path funcotator_datasources \
-# --ref-version hg38
+### -----------------------------
+### 16. Download Funcotator Data sources
+### -----------------------------
+./gatk FuncotatorDataSourceDownloader --germline --validate-integrity --extract-after-download
+
+### -----------------------------
+### 17. Variant Annotation (Funcotator)
+### -----------------------------
+gatk Funcotator \
+-R $REFERENCE \
+-V filtered_variants.vcf \
+--output-file annotated_variants.vcf \
+--data-sources-path path_to_funcotator_datasources \
+--ref-version hg38
 
 echo "Pipeline completed successfully!"
