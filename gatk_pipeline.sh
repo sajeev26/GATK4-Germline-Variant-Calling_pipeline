@@ -22,6 +22,7 @@ REFERENCE="reference/hg38/hg38.fa"
 echo "Running FastQC..."
 mkdir -p fastqc_output
 fastqc sample_1.fastq sample_2.fastq -o fastqc_output/
+###Edit at all the sample places with the corresponding sample accession with the path specified
 
 ### -----------------------------
 ### 4. Read Trimming (Trimmomatic)
