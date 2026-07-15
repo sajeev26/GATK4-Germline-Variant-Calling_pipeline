@@ -1,6 +1,8 @@
 # GATK Germline Variant Calling Workflow
 
 A reproducible workflow for **NGS variant discovery** using GATK Best Practices, covering data pre-processing, per-sample variant calling, joint genotyping, and variant filtering.
+For example run, use the accession SRR062634 
+Or customize your sample in appropriate positions that are indicated with 'sample' in the script.
 
 ## Overview
 
