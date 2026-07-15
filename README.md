@@ -1,142 +1,112 @@
-# GATK Variant Calling Pipeline
+# GATK Germline Variant Calling Workflow
 
-This repository contains a complete workflow for performing variant calling using the Genome Analysis Toolkit (GATK).
-The pipeline covers all major steps from raw FASTQ files to final annotated variants (VCF).
+A reproducible workflow for **NGS variant discovery** using GATK Best Practices, covering data pre-processing, per-sample variant calling, joint genotyping, and variant filtering.
 
-# Overview
+## Overview
 
-This pipeline demonstrates how to perform:
+This repository is designed to present a clean and reusable workflow for calling **germline SNPs and Indels** from high-throughput sequencing data using GATK4. The pipeline follows the general logic described in GATK Best Practices, including duplicate marking, base quality score recalibration, per-sample calling in GVCF mode, joint genotyping, and downstream filtering.
 
->Quality control
+The goal of this repository is to make the workflow easier to understand, adapt, and reuse for research projects that require structured variant discovery from raw or aligned sequencing data.
 
->Read trimming
+## Workflow summary
 
->Genome alignment
+The pipeline can be organized into the following major stages:
 
->BAM processing (sorting, marking duplicates, indexing)
+1. Raw data quality assessment
+2. Read alignment to the reference genome
+3. BAM sorting and indexing
+4. Duplicate marking
+5. Base quality score recalibration (BQSR)
+6. Variant calling with `HaplotypeCaller` in GVCF mode
+7. Joint genotyping across samples
+8. Variant filtering and generation of final VCF files
 
->Base Quality Score Recalibration (BQSR)
+## Typical workflow
 
->Variant calling (VCF / GVCF)
+### 1. Pre-processing
 
->Joint genotyping (for multi-sample projects)
+GATK Best Practices describe data pre-processing as the required first phase before variant discovery. Core pre-processing steps include duplicate marking and BQSR to reduce technical bias and improve downstream variant calls.
 
->Variant filtering (VQSR / hard filtering)
+Typical tools:
+- `FastQC`
+- `BWA`
+- `samtools`
+- `MarkDuplicates`
+- `BaseRecalibrator`
+- `ApplyBQSR`
 
->Variant annotation (Funcotator / VEP / ANNOVAR)
+### 2. Per-sample calling
 
-The instructions work for human datasets (hg38) and can be adapted for bacterial/fungal genomes.
+For germline short variant discovery, `HaplotypeCaller` is commonly used to produce GVCF output for each sample. This supports later joint genotyping and makes it easier to add samples progressively.
 
-# Environment Setup
+Typical tool:
+- `HaplotypeCaller`
 
-Create and activate a dedicated conda environment:
+### 3. Joint genotyping
 
-conda create -n gatk_env python=3.9
+Multi-sample workflows generally combine per-sample GVCFs and perform joint genotyping. GATK workflow examples include `GenomicsDBImport` followed by `GenotypeGVCFs`.
 
-conda activate gatk_env
+Typical tools:
+- `GenomicsDBImport`
+- `GenotypeGVCFs`
 
-conda install -c bioconda gatk4
+### 4. Variant filtering
 
-Verify installation:
+Raw variant calls contain artifacts, so filtering is needed before interpretation. GATK documentation describes variant filtering as a dedicated stage after calling, using approaches such as VQSR where appropriate.
 
-gatk --version
+Typical tools:
+- `VariantRecalibrator`
+- `ApplyVQSR`
+- Hard filtering, when VQSR is not appropriate for the dataset
 
-# Download Reference Genome
-wget -P reference/hg38/ http://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
+## Input requirements
 
-gunzip reference/hg38/hg38.fa.gz
+Prepare the following before running the workflow:
 
-# Quality Check - FastQC
-fastqc sample_1.fastq sample_2.fastq
+- Paired-end or single-end sequencing reads, or coordinate-sorted BAM files
+- Reference genome FASTA
+- Reference genome index files
+- Known-sites variant resources for BQSR, when available
+- Sample sheet with sample identifiers and file paths
 
-# Read Trimming - Trimmomatic
-java -jar trimmomatic-0.30.jar PE sample_1.fastq sample_2.fastq sample_1_paired.fq.gz sample_1_unpaired.fq.gz sample_2_paired.fq.gz sample_2_unpaired.fq.gz ILLUMINACLIP:adapter.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36
+## Expected outputs
 
-# Alignment - BWA
+Typical outputs include:
 
-Install BWA:
+- Aligned and sorted BAM files
+- Duplicate-marked BAM files
+- Recalibrated BAM files
+- Per-sample GVCF files
+- Joint genotyped VCF files
+- Filtered final VCF files
+- Summary metrics and logs
 
-sudo apt install bwa
+## Software
 
-Index reference:
+This workflow is intended for a GATK4-style analysis setup and is typically used alongside commonly adopted tools for alignment, BAM processing, and QC.
 
-bwa index reference/hg38/reference_genome.fasta
+Recommended software:
+- GATK4
+- BWA
+- samtools
+- Picard tools
+- FastQC
+- MultiQC
 
-# Align:
+## Reusability notes
 
-bwa mem reference/hg38/reference_genome.fasta sample_1.fastq sample_2.fastq > aligned_reads.sam
+To make this repository more reusable for other researchers:
 
-# Convert and sort:
+- Keep sample metadata in a tabular file rather than hardcoding paths.
+- Store software versions in a separate file.
+- Separate configuration, workflow scripts, and documentation.
+- Use clear output directories for each stage.
+- Add one worked example with expected file names and output descriptions.
 
-samtools view -bS aligned_reads.sam > aligned_reads.bam
+## Recommended GitHub description
 
-java -jar picard.jar SortSam -INPUT aligned_reads.bam -OUTPUT sorted_reads.bam -SORT_ORDER coordinate
-samtools index sorted_reads.bam
+**Reusable GATK4 workflow for germline SNP/Indel discovery, from pre-processing and BQSR to GVCF calling, joint genotyping, and filtered VCF output.**
 
-# Mark Duplicates - Picard
-java -jar picard.jar MarkDuplicates INPUT=with_readgroups.bam OUTPUT=marked_reads.bam METRICS_FILE=dup_metrics.txt
+## Citation and acknowledgment
 
-
-If required:
-
-java -jar picard.jar AddOrReplaceReadGroups -I sorted_reads.bam -O with_readgroups.bam -RGID 1 -RGLB library1 -RGPL illumina -RGPU unit1 -RGSM sample1
-
-# Base Quality Score Recalibration (BQSR)
-
-Index reference:
-
-samtools faidx reference_genome.fasta
-
-gatk CreateSequenceDictionary -R reference_genome.fasta
-
-
-# Download known sites:
-
-wget -P reference/hg38/ https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf
-
-wget -P reference/hg38/ https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf.idx
-
-
-# Run BQSR:
-
-gatk BaseRecalibrator -I marked_reads.bam -R reference_genome.fasta -known-sites dbsnp.vcf -O recal_data.table
-
-gatk ApplyBQSR -I marked_reads.bam -R reference_genome.fasta --bqsr-recal-file recal_data.table -O recalibrated_reads.bam
-
-# Variant Calling - HaplotypeCaller
-Standard VCF:
-
-gatk HaplotypeCaller -R reference_genome.fasta -I recalibrated_reads.bam -O raw_variants.vcf
-
-# GVCF mode(For multiple sample):
-gatk HaplotypeCaller -R reference_genome.fasta -I recalibrated_reads.bam -O sample.g.vcf -ERC GVCF
-
-# Joint Genotyping (Multi-sample)
-gatk CombineGVCFs -R reference_genome.fasta -V sample1.g.vcf -V sample2.g.vcf -O combined.g.vcf
-
-gatk GenotypeGVCFs -R reference_genome.fasta -V combined.g.vcf -O combined_variants.vcf
-
-# Variant Filtering
-Human data — VQSR:
-
-gatk VariantRecalibrator & gatk ApplyVQSR
-
-# Bacterial/Fungal - Hard Filtering:
-gatk VariantFiltration -R reference.fasta -V raw_variants.vcf --filter-name "LowQual" --filter-expression "QD < 2.0 || FS > 60.0 || MQ < 40.0" -O filtered_variants.vcf
-
-# Separate SNP / INDEL:
-
-Use "gatk SelectVariants"
-
-# Variant Annotation
-Funcotator:
-
-gatk Funcotator -R reference/hg38/reference_genome.fasta -V filtered_variants.vcf --output-file annotated_variants.vcf --data-sources-path /path/to/funcotator_data_sources
-
-# VEP (Ensembl)
-
-Alternatively, annotation can be performed through Ensembl VEP (web or CLI).
-
-# For your queries and suggestions
-
-Reach out to 'sajeevrajssr@gmail.com'
+This workflow is conceptually aligned with GATK Best Practices and official GATK workflow resources from the Broad Institute.
