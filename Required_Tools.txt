@@ -1,0 +1,11 @@
+Required Bioinformatics tools
+- fastqc
+- trimmomatic
+- bwa
+- picard
+- samtools
+- gatk
+- tabix / bgzip
+- java
+
+###Both trimmomatic and picard need the jar files to be downloaded
