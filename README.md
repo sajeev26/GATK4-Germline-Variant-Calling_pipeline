@@ -114,3 +114,6 @@ To make this repository more reusable for other researchers:
 ## Citation and acknowledgment
 
 This workflow is conceptually aligned with GATK Best Practices and official GATK workflow resources from the Broad Institute.
+
+## For your queries and suggestions
+Reach out to sajeevrajssr@gmail.com
