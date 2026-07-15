@@ -1,11 +1,4 @@
 #!/bin/bash
-# ================================================================
-#      GATK Variant Calling Pipeline — Whole Genome / Exome
-# ================================================================
-# Author : Sajeev Raj S  
-# Description : Fully automated pipeline for FASTQ → VCF  
-# Dependencies : GATK4, Picard, BWA, SAMtools, Trimmomatic, FastQC
-# ================================================================
 
 ### -----------------------------
 ### 1. Create Conda Environment
